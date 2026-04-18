@@ -154,6 +154,134 @@ export type MemoryQueryResponse = z.infer<typeof MemoryQueryResponseSchema>;
 export type MemoryResult = z.infer<typeof MemoryResultSchema>;
 
 // ============================================================================
+// research_query
+// ============================================================================
+
+export const ResearchQueryInputSchema = z.object({
+  action: z.enum(['status', 'overlap', 'stats', 'search']),
+  techniqueId: z.string().optional(),
+  query: z.string().optional(),
+  status: z.enum(['implemented', 'planned', 'not-started', 'rejected', 'all']).optional(),
+  threshold: z.number().min(0).max(1).optional(),
+});
+
+export const ResearchQueryResponseSchema = z.object({
+  action: z.string(),
+  success: z.boolean(),
+  data: z.unknown(),
+});
+
+export type ResearchQueryResponse = z.infer<typeof ResearchQueryResponseSchema>;
+
+// ============================================================================
+// research_synthesize
+// ============================================================================
+
+export const ResearchSynthesizeInputSchema = z.object({
+  topic: z.string().optional(),
+});
+
+const TechniqueAlignmentSchema = z.object({
+  technique: z.string(),
+  status: z.enum(['implemented', 'partial', 'not-started']),
+  canonicalPath: z.string().optional(),
+  improvementHint: z.string().optional(),
+});
+
+const QualityDistributionSchema = z.object({
+  avgScore: z.number(),
+  high: z.number(),
+  medium: z.number(),
+  low: z.number(),
+});
+
+const ClusterSynthesisSchema = z.object({
+  topic: z.string(),
+  paperCount: z.number(),
+  papers: z.array(z.string()),
+  commonThemes: z.array(z.string()),
+  keyInsights: z.array(z.string()),
+  techniques: z.array(z.string()),
+  implementationOpportunities: z.array(z.string()),
+  gaps: z.array(z.string()),
+  alignedTechniques: z.array(TechniqueAlignmentSchema),
+  qualityDistribution: QualityDistributionSchema,
+});
+
+const AlignmentSummarySchema = z.object({
+  implemented: z.number(),
+  partial: z.number(),
+  notStarted: z.number(),
+  total: z.number(),
+  topOpportunities: z.array(z.string()),
+});
+
+const FeatureGateStatusSchema = z.object({
+  envVar: z.string(),
+  defaultValue: z.string(),
+  description: z.string(),
+  linkedTechniqueCount: z.number(),
+});
+
+export const ResearchSynthesizeResponseSchema = z.object({
+  clusters: z.array(ClusterSynthesisSchema),
+  totalPapers: z.number(),
+  topicCount: z.number(),
+  crossCuttingThemes: z.array(z.string()),
+  alignmentSummary: AlignmentSummarySchema,
+  featureGates: z.array(FeatureGateStatusSchema),
+});
+
+export type ResearchSynthesizeResponse = z.infer<typeof ResearchSynthesizeResponseSchema>;
+export type ClusterSynthesis = z.infer<typeof ClusterSynthesisSchema>;
+
+// ============================================================================
+// research_add_source
+// ============================================================================
+
+export const ResearchAddSourceInputSchema = z.object({
+  url: z.string().min(1).max(500),
+  name: z.string().min(1).max(200),
+  type: z.enum([
+    'product_docs',
+    'specification',
+    'research_blog',
+    'code_analysis',
+    'open_source_repo',
+  ]),
+  vendor: z.string().max(100).optional(),
+  topics: z.array(z.string().max(50)).max(5).optional(),
+  tags: z.array(z.string().max(50)).max(10).optional(),
+  quality_signals: z
+    .object({
+      stars_at_review: z.number().nonnegative().optional(),
+      language: z.string().max(50).optional(),
+      has_tests: z.boolean().optional(),
+      has_docs: z.boolean().optional(),
+      has_paper: z.boolean().optional(),
+    })
+    .optional(),
+  techniques_extracted: z.array(z.string().max(100)).max(5).optional(),
+  verdict: z
+    .enum(['adopted', 'partially_adopted', 'rejected', 'monitoring', 'planned'])
+    .optional(),
+  verdict_notes: z.string().max(500).optional(),
+  dryRun: z.boolean().optional(),
+});
+
+export const ResearchAddSourceResponseSchema = z.object({
+  success: z.boolean(),
+  sourceId: z.string(),
+  name: z.string(),
+  quality_score: z.number(),
+  evidence_tier: z.enum(['high', 'medium', 'low']),
+  message: z.string(),
+  dryRun: z.boolean(),
+});
+
+export type ResearchAddSourceResponse = z.infer<typeof ResearchAddSourceResponseSchema>;
+
+// ============================================================================
 // Pipeline types
 // ============================================================================
 

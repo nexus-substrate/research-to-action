@@ -15,6 +15,12 @@ export {
   VoteResponseSchema,
   MemoryQueryInputSchema,
   MemoryQueryResponseSchema,
+  ResearchQueryInputSchema,
+  ResearchQueryResponseSchema,
+  ResearchSynthesizeInputSchema,
+  ResearchSynthesizeResponseSchema,
+  ResearchAddSourceInputSchema,
+  ResearchAddSourceResponseSchema,
 } from './types.js';
 
 export type {
@@ -25,6 +31,10 @@ export type {
   VoteResponse,
   MemoryQueryResponse,
   MemoryResult,
+  ResearchQueryResponse,
+  ResearchSynthesizeResponse,
+  ClusterSynthesis,
+  ResearchAddSourceResponse,
   PrioritizedPaper,
   ResearchDecision,
   PipelineResult,
