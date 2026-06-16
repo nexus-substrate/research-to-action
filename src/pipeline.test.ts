@@ -13,6 +13,8 @@ import {
   toPrioritizedPapers,
   buildDecision,
   runResearchPipeline,
+  withTimeout,
+  ToolCallTimeoutError,
 } from './pipeline.js';
 import type { PipelineConfig } from './types.js';
 import {
@@ -339,5 +341,54 @@ describe('runResearchPipeline', () => {
     expect(proposal).toContain('multi-agent');
     expect(proposal).toContain('3 papers');
     expect(proposal).toContain('2 new');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// withTimeout
+// ---------------------------------------------------------------------------
+
+describe('withTimeout', () => {
+  it('rejects with ToolCallTimeoutError when the call hangs', async () => {
+    const hanging: ToolCaller = {
+      call: () => new Promise<unknown>(() => {}), // never settles
+    };
+    const bounded = withTimeout(hanging, 10);
+    await expect(bounded.call('research_discover', {})).rejects.toBeInstanceOf(
+      ToolCallTimeoutError,
+    );
+  });
+
+  it('passes through a fast result before the timeout fires', async () => {
+    const fast: ToolCaller = {
+      call: async () => ({ ok: true }),
+    };
+    const bounded = withTimeout(fast, 1000);
+    await expect(bounded.call('research_discover', {})).resolves.toEqual({ ok: true });
+  });
+
+  it('propagates the underlying error', async () => {
+    const failing: ToolCaller = {
+      call: async () => {
+        throw new Error('backend exploded');
+      },
+    };
+    const bounded = withTimeout(failing, 1000);
+    await expect(bounded.call('consensus_vote', {})).rejects.toThrow('backend exploded');
+  });
+
+  it('aborts the signal when the timeout fires', async () => {
+    let captured: AbortSignal | undefined;
+    const hanging: ToolCaller = {
+      call: (_tool, args) => {
+        captured = args['signal'] as AbortSignal;
+        return new Promise<unknown>(() => {}); // never settles
+      },
+    };
+    const bounded = withTimeout(hanging, 10);
+    await expect(bounded.call('memory_query', {})).rejects.toBeInstanceOf(
+      ToolCallTimeoutError,
+    );
+    expect(captured?.aborted).toBe(true);
   });
 });

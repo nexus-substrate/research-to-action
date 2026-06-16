@@ -15,12 +15,6 @@ export {
   VoteResponseSchema,
   MemoryQueryInputSchema,
   MemoryQueryResponseSchema,
-  ResearchQueryInputSchema,
-  ResearchQueryResponseSchema,
-  ResearchSynthesizeInputSchema,
-  ResearchSynthesizeResponseSchema,
-  ResearchAddSourceInputSchema,
-  ResearchAddSourceResponseSchema,
 } from './types.js';
 
 export type {
@@ -31,10 +25,6 @@ export type {
   VoteResponse,
   MemoryQueryResponse,
   MemoryResult,
-  ResearchQueryResponse,
-  ResearchSynthesizeResponse,
-  ClusterSynthesis,
-  ResearchAddSourceResponse,
   PrioritizedPaper,
   ResearchDecision,
   PipelineResult,
@@ -57,5 +47,3 @@ export type { ToolCaller } from './pipeline.js';
 export { generateReport } from './reporter.js';
 
 export type { ReportFormat } from './reporter.js';
-
-export { createLiveCaller, isLiveMode } from './live-caller.js';
