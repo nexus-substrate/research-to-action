@@ -29,6 +29,45 @@ export interface ToolCaller {
   call(tool: string, args: Record<string, unknown>): Promise<unknown>;
 }
 
+/** Default per-call timeout for remote tool calls (ms). */
+export const DEFAULT_TIMEOUT_MS = 30_000;
+
+/** Error thrown when a tool call exceeds its configured timeout. */
+export class ToolCallTimeoutError extends Error {
+  constructor(toolName: string, timeoutMs: number) {
+    super(`Tool call '${toolName}' timed out after ${timeoutMs}ms`);
+    this.name = 'ToolCallTimeoutError';
+  }
+}
+
+/**
+ * Wrap a ToolCaller so every call is bounded by `timeoutMs`.
+ *
+ * Uses an AbortController combined with a timer, guaranteeing the returned
+ * promise settles even if the underlying call hangs forever.
+ */
+export function withTimeout(
+  caller: ToolCaller,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): ToolCaller {
+  return {
+    call(tool: string, args: Record<string, unknown>): Promise<unknown> {
+      const controller = new AbortController();
+      const callArgs = { ...args, signal: controller.signal };
+      return new Promise<unknown>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          controller.abort();
+          reject(new ToolCallTimeoutError(tool, timeoutMs));
+        }, timeoutMs);
+        caller.call(tool, callArgs).then(
+          (value) => { clearTimeout(timer); resolve(value); },
+          (err) => { clearTimeout(timer); reject(err); },
+        );
+      });
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Step 1: Discover papers
 // ---------------------------------------------------------------------------
@@ -170,13 +209,14 @@ export async function runResearchPipeline(
 ): Promise<PipelineResult> {
   const errors: string[] = [];
   const focus = config.analysisFocus ?? 'gaps';
+  const boundedCaller = withTimeout(caller, config.timeoutMs);
 
   // Step 1: Discover
-  const discover = await discoverPapers(caller, config.topic, config.maxPapers);
+  const discover = await discoverPapers(boundedCaller, config.topic, config.maxPapers);
 
   // Step 2: Add to registry
   const addResults = await addPapers(
-    caller,
+    boundedCaller,
     discover,
     config.addToRegistry ?? false,
   );
@@ -184,7 +224,7 @@ export async function runResearchPipeline(
   // Step 3: Analyze
   let analysis: AnalyzeResponse | null = null;
   try {
-    analysis = await analyzeResearch(caller, focus, config.topic);
+    analysis = await analyzeResearch(boundedCaller, focus, config.topic);
   } catch (e) {
     errors.push(`analyze failed: ${e instanceof Error ? e.message : String(e)}`);
   }
@@ -195,13 +235,13 @@ export async function runResearchPipeline(
     `Research direction for "${config.topic}": ` +
     `Found ${discover.totalFound} papers (${discover.newItems} new). ` +
     analysisSummary;
-  const vote = await voteOnDirection(caller, proposal, config.voteStrategy);
+  const vote = await voteOnDirection(boundedCaller, proposal, config.voteStrategy);
 
   // Step 5: Memory
   let memoryStored = false;
   if (config.storeInMemory ?? true) {
     try {
-      await storeInMemory(caller, `research decision: ${config.topic}`);
+      await storeInMemory(boundedCaller, `research decision: ${config.topic}`);
       memoryStored = true;
     } catch (e) {
       errors.push(`memory failed: ${e instanceof Error ? e.message : String(e)}`);

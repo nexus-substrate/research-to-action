@@ -18,7 +18,7 @@ research_discover → research_add → research_analyze → consensus_vote → m
 
 ```bash
 pnpm install
-pnpm test        # Run 71 unit tests
+pnpm test        # Run 75 unit tests
 pnpm typecheck   # TypeScript strict mode
 pnpm build       # Compile to dist/
 ```
@@ -38,20 +38,6 @@ const result = await runResearchPipeline(caller, {
 });
 
 console.log(generateReport(result, 'markdown'));
-```
-
-## Live integration mode
-
-```bash
-# 1. Create src/live-bridge.ts with your MCP client
-# 2. Run:
-NEXUS_LIVE=true npx tsx src/run-live.ts
-
-# Custom topic:
-NEXUS_LIVE=true RESEARCH_TOPIC="LLM routing" npx tsx src/run-live.ts
-
-# JSON output:
-NEXUS_LIVE=true REPORT_FORMAT=json npx tsx src/run-live.ts
 ```
 
 ## MCP tools covered
@@ -79,8 +65,6 @@ src/
     mock-responses.ts   # Mock data for all 5 tools
   pipeline.ts           # Research pipeline (discover → add → analyze → vote → store)
   reporter.ts           # Report formatter (markdown/json/text)
-  live-caller.ts        # Live mode ToolCaller bridge
-  run-live.ts           # CLI entry point for live integration testing
   index.ts              # Public API exports
 ```
 
